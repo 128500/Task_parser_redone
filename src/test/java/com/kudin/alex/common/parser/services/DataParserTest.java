@@ -1,15 +1,13 @@
 package com.kudin.alex.common.parser.services;
 
+import com.kudin.alex.common.parser.entities.Tire;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
 
 import static org.junit.Assert.*;
 
@@ -19,6 +17,8 @@ import static org.junit.Assert.*;
 public class DataParserTest extends Mockito {
 
     private final static String PATH = "C:\\Users\\homeuser.1-HP\\Desktop\\Прайс шины.xls";
+    private final static String WRONG_FORMAT_TABLE_PATH = "C:\\Users\\homeuser.1-HP\\Desktop\\price_tires_wrong_cell_format.xls";
+    private final static String STRING_TO_PARSE = "165/65 R15 Continental ContiWinterContact TS850 81T XL шип FR";
     private DataParser parser = new DataParser();
 
     @Before
@@ -48,32 +48,42 @@ public class DataParserTest extends Mockito {
 
     @Test
     public void parseData() {
-        Workbook b = parser.openFile(PATH);
-        assertFalse(parser.parseData(b).isEmpty());
+        Workbook book = parser.openFile(PATH);
+        assertFalse(parser.parseData(book).isEmpty());
     }
 
     @Test
     public void parseDataWrongFormat() {
-        Workbook book = mock(Workbook.class);
-        Sheet sheet = mock(Sheet.class);
-        Row row = mock(Row.class);
-        Cell cell = mock(Cell.class);
-
-        when(book.getSheetAt(0)).thenReturn(sheet);
-        when(sheet.getLastRowNum()).thenReturn(7);
-        when(sheet.getFirstRowNum()).thenReturn(0);
-
-        when(sheet.getRow(anyInt())).thenReturn(row);
-        when(row.getPhysicalNumberOfCells()).thenReturn(7);
-
-        when(isRowAHeader(sheet.getRow(anyInt())).thenReturn(false);
+        Workbook book = parser.openFile(WRONG_FORMAT_TABLE_PATH);
+        parser.parseData(book);
     }
 
     @Test
     public void parseTireCipher() {
+       Tire t = parser.parseTireCipher(STRING_TO_PARSE);
+       assertTrue(t.getManufacturer() != null);
+       assertTrue(t.getModel() != null);
+       assertTrue(t.getLoadIndex() != null);
+       assertTrue(t.getSpeedIndex() != null);
+       assertTrue(t.getAdditionalParam() != null);
+       assertTrue(t.getDiameter() != 0.0);
+       assertTrue(t.getWidth() != 0.0);
+       assertTrue(t.getHeight() != 0.0);
     }
 
     @Test
-    public void isRowAHeader() {
+    public void isRowAHeaderTrue() {
+        Workbook book = parser.openFile(PATH);
+        Sheet sheet = book.getSheetAt(0);
+        Row headerRow = sheet.getRow(1);
+        assertTrue(parser.isRowAHeader(headerRow));
+    }
+
+    @Test
+    public void isRowAHeaderFalse() {
+        Workbook book = parser.openFile(PATH);
+        Sheet sheet = book.getSheetAt(0);
+        Row headerRow = sheet.getRow(2);
+        assertFalse(parser.isRowAHeader(headerRow));
     }
 }

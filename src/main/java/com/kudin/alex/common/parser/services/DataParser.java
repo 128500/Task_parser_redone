@@ -37,6 +37,8 @@ public class DataParser {
     /*A map to manage double word names of manufacturers (nothing else comes to mind)*/
     private final static Map<String, String> MANUFACTURERS = new HashMap<>();
 
+    private final static String PATTERN = "\\d{3}/\\d{2}\\sR\\d{2}C?.*\\s((\\d{2}[TH])|(\\d{3}[RL]?/\\d{3}[RL]?)).*";
+
     /*Static initializer of MANUFACTURERS*/
     static {
         MANUFACTURERS.put("Viking", "Tyres");
@@ -94,18 +96,31 @@ public class DataParser {
              */
             while(isRowAHeader(sheet.getRow(i))) i++;
 
+
             /*For each row of the table do decipher*/
             for( ; i<= rowNumber; i++){
                 Row r = sheet.getRow(i);
                 Tire t = null;
                 if(r != null){
-                    String tireName = r.getCell(2).getStringCellValue();
-                    if(tireName != null && !tireName.isEmpty()){
-                        t = parseTireCipher(tireName);
+                    if(r.getCell(2).getCellTypeEnum().equals(CellType.STRING)) {
+                        String tireName = r.getCell(2).getStringCellValue();
+                        if (tireName != null && !tireName.isEmpty()) {
+                            if(tireName.matches(PATTERN)){
+                                t = parseTireCipher(tireName);
+                            }
+                            else{
+                                log.error("THE CELL AT ROW " + (i + 1) + " AND COLUMN 'C' HAS WRONG FORMAT AND CANNOT BE PARSED. INFO OF THIS ROW WON'T BE SAVED");
+                                continue;
+                            }
+
+                        } else {
+                            log.error("THE CELL AT ROW " + (i + 1) + " AND COLUMN 'C' IS EMPTY. INFO OF THIS ROW WON'T BE SAVED");
+                            continue;
+                        }
                     }
                     else{
-                        log.error("THE CELL AT ROW " + (i+1) + " AND COLUMN 'C' IS EMPTY. INFO OF THIS ROW WON'T BE SAVED");
-                        break;
+                        log.error("THE CELL AT ROW " + (i + 1) + " AND COLUMN 'C' HAS WRONG TYPE. INFO OF THIS ROW WON'T BE SAVED");
+                        continue;
                     }
                     t.setType(r.getCell(0).getStringCellValue().replaceAll("\u0000", ""));
                     t.setSeason(r.getCell(1).getStringCellValue().replaceAll("\u0000", ""));
@@ -145,8 +160,11 @@ public class DataParser {
                     System.out.println(t.toString());
                 }
             }
-        }catch (Exception e){
-            log.error(e);
+        }catch (IllegalStateException e1){
+            log.error(e1);
+        }
+        catch (Exception e2){
+            log.error(e2);
         }
         return tires;
     }
